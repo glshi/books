@@ -1,4 +1,4 @@
-- language
+- 赞助
   - [:uk: English](/)
   - [:cn: 中文](/zh-cn/)
   - [:de: Deutsch](/de-de/)

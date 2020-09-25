@@ -1,38 +1,31 @@
 ## 知否
 
-> A magical documentation site generator.
+> A magical documentation site.
 
 ## What it is
 
-docsify generates your documentation website on the fly. Unlike GitBook, it does not generate static html files. Instead, it smartly loads and parses your Markdown files and displays them as a website. To start using it, all you need to do is create an `index.html` and [deploy it on GitHub Pages](deploy.md).
+> This document aims to create and share some concise and practical books.
 
-See the [Quick start](quickstart.md) guide for more details.
 
 ## Features
 
-- No statically built html files
-- Simple and lightweight
-- Smart full-text search plugin
-- Multiple themes
-- Useful plugin API
-- Emoji support
-- Compatible with IE11
-- Support server-side rendering ([example](https://github.com/docsifyjs/docsify-ssr-demo))
-
-## Examples
-
-Check out the [Showcase](https://github.com/docsifyjs/awesome-docsify#showcase) to see docsify in use.
+- 面试
+- 算法
+- 数据结构
+- 操作系统
+- 计算机网络
+- 数据库原理
+- Java
+- linux
+- python
 
 ## Donate
 
-Please consider donating if you think docsify is helpful to you or that my work is valuable. I am happy if you can help me [buy a cup of coffee](https://github.com/QingWei-Li/donate). :heart:
+Please consider donating if you think document is helpful to you or that my work is valuable.
 
-## Community
+I am happy if you can help me [buy a cup of coffee](https://github.com/glshi/books/docs/donate/donate.md). :heart:
 
-Users and the development team are usually in the [Gitter chat room](https://gitter.im/docsifyjs/Lobby).
+## Lisence
 
-## Special Thanks
+this project follows GNU General Public License v3.0 .
 
-_Vercel_ has given us a Pro account.
-
-<a href="https://vercel.com/?utm_source=docsifyjsdocs" target="_blank"><img src="_media/vercel_logo.svg" width="100px"></a>
