@@ -7,7 +7,7 @@
 > This document aims to create and share some concise and practical books.
 
 
-## Features
+## books
 
 - 面试
 - 算法
@@ -23,7 +23,7 @@
 
 Please consider donating if you think document is helpful to you or that my work is valuable.
 
-I am happy if you can help me [buy a cup of coffee](https://github.com/glshi/books/docs/donate/donate.md). :heart:
+I am happy if you can help me [buy a cup of coffee](https://github.com/glshi/donate). 
 
 ## Lisence
 
