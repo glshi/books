@@ -9,7 +9,9 @@
   - [linux](operation/linux.md)
   - [docker](operation/docker.md)
   - [ubuntu](operation/ubuntu.md)
-- 算法
-  - 机器学习
-  - 深度学习
-  - 强化学习
+- 人工智能
+- 操作系统
+- 数据结构
+- 算法导论
+- 计算机网络
+- 数据库原理
