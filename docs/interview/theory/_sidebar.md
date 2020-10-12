@@ -5,4 +5,6 @@
 * [kafka原理](interview/theory/kafka原理.md)
 * [rabbit原理](interview/theory/rabbit原理.md)
 * [flink原理](interview/theory/flink原理.md)
+* [elasticsearch原理](interview/theory/elasticsearch原理.md)
+* [hive原理](interview/theory/hive原理.md)
 

@@ -16,6 +16,13 @@ Grafana http://localhost:3000 admin admin
 $ kubectl --namespace monitoring port-forward svc/alertmanager-main 9093
 Alert Manager http://localhost:9093
 
+# mysql
+kubectl port-forward service/mysql-operator 8080:80 --address 192.168.1.180
+kubectl port-forward service/mysql 3306 --address 192.168.1.180
+
+# zookeeper
+kubectl port-forward -n default zookeeper-0 2181:2181 --address 192.168.1.180
+
 ```
 
 ## 镜像拉取失败
@@ -463,7 +470,7 @@ kubectl -n rook-ceph get cephcluster
 for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do kubectl patch crd -n rook-ceph $CRD --type merge -p '{"metadata":{"finalizers": [null]}}'; done
 ```
 
-## Block Storage
+## 块存储
 
 Create the storage class.
 
@@ -519,7 +526,7 @@ kubectl delete -n rook-ceph cephblockpool replicapool
 kubectl delete storageclass rook-ceph-block
 ```
 
-## Object Storage
+## 对象存储
 
 
 
@@ -527,7 +534,7 @@ https://rook.io/docs/rook/v1.4/ceph-object.html
 
 
 
-## Shared Filesystem
+## 文件存储
 
 By default only one shared filesystem can be created with Rook. Multiple filesystem support in Ceph is still considered experimental and can be enabled with the environment variable `ROOK_ALLOW_MULTIPLE_FILESYSTEMS` defined in `operator.yaml`.
 
@@ -808,7 +815,7 @@ spec:
 
 ```
 
-## dashboard 配置
+## 配置 dashboard 
 
 **1：NodePort  https 访问 dashboard**
 
@@ -1114,26 +1121,737 @@ The service `<release-name>-mysql-operator` exposes port 80. Via this port you w
 ```shell
 kubectl port-forward service/<release-name>-mysql-operator 8080:80
 kubectl port-forward service/mysql-operator 8080:80 --address 192.168.1.180
+
+kubectl port-forward service/mysql 3306 --address 192.168.1.180
 ```
 
 Then type `localhost:8080` in a browser.
 
 
 
+## Navicat for MySQL 1045
+
+```bash
+# root 密码是 base64 编码，需要解码才能看到
+user:root password:bXlwYXNz  base64 解密后是mypass
+[root@manager ~]# echo 'bXlwYXNz' > ./1.txt
+[root@manager ~]# base64 -d ./1.txt 
+mypass
+
+# 查看密码文件
+kubectl get service -A
+kubectl get secret -A
+kubectl get secret my-secret  -o yaml
+
+# bash 登录
+kubectl get pod
+kubectl exec  my-cluster-mysql-0 -c mysql -it -- bash
+# 连接mysql
+mysql -uroot -pmypass
+show databases;
+use mysql;
+```
+
+## 新增用户
+
+- 用户名`myuser` 密码`mypassword`
+
+```bash
+mysql -u root -p 
+CREATE USER 'myuser'@'localhost' IDENTIFIED BY 'mypassword'; #本地登录 
+CREATE USER 'myuser'@'%' IDENTIFIED BY 'mypassword'; #远程登录 
+quit 
+mysql -u myuser -p #测试是否创建成功
+```
+
+如果出现以下问题,可以参考这个链接
+
+- [ERROR 1819 (HY000): Your password does not satisfy the current policy requirements](https://links.jianshu.com/go?to=https%3A%2F%2Fwww.cnblogs.com%2Fivictor%2Fp%2F5142809.html)
+
+## 为用户授权
+
+- a.授权格式：grant 权限 on 数据库.* to 用户名@登录主机 identified by '密码';
+- b.登录MYSQL，这里以ROOT身份登录：
+- c.为用户创建一个数据库(testDB)：
+
+```mysql
+create database testDB default charset utf8mb4 collate utf8mb4_unicode_ci;
+```
+
+- d.授权test用户拥有`testDB`数据库的所有权限：
+
+```mysql
+grant all privileges on testDB.* to 'myuser'@'localhost' identified by 'mypassword'; 本地授权
+grant all privileges on testDB.* to 'myuser'@'%' identified by 'mypassword'; 远程授权
+flush privileges; #刷新系统权限表
+```
+
+- e.指定部分权限给用户:
+
+```csharp
+grant select,update on testDB.* to 'myuser'@'localhost' identified by 'mypassword'; 
+grant select,delete,update,create,drop on *.* to 'test'@'%' identified by 'test123';
+flush privileges; #刷新系统权限表
+```
+
+## 创建常用库
+
+```sql
+create database u_member default charset utf8mb4 collate utf8mb4_unicode_ci;
+create database u_order default charset utf8mb4 collate utf8mb4_unicode_ci;
+create database u_product default charset utf8mb4 collate utf8mb4_unicode_ci;
+```
+
+# pravega/zookeeper-operator
+
+
+
+## 安装 zookeeper operator
+
+```bash
+$ helm repo add pravega https://charts.pravega.io
+$ helm repo update
+$ helm install [RELEASE_NAME] pravega/zookeeper-operator --version=[VERSION]
+
+helm install zookeeper-operator pravega/zookeeper-operator
+```
+
+## 安装 Zookeeper cluster
+
+#### Install via helm
+
+To understand how to deploy a sample zookeeper cluster using helm, refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper#installing-the-chart).
+
+```bash
+$ helm repo add pravega https://charts.pravega.io
+$ helm repo update
+$ helm install [RELEASE_NAME] pravega/zookeeper --version=[VERSION]
+helm install zookeeper pravega/zookeeper
+```
+
+#### Manual deployment
+
+Create a Yaml file called `zk.yaml` with the following content to install a 3-node Zookeeper cluster.
+
+```
+apiVersion: "zookeeper.pravega.io/v1beta1"
+kind: "ZookeeperCluster"
+metadata:
+  name: "zookeeper"
+spec:
+  replicas: 3
+$ kubectl create -f zk.yaml
+```
+
+After a couple of minutes, all cluster members should become ready.
+
+```
+$ kubectl get zk
+
+NAME        REPLICAS   READY REPLICAS    VERSION   DESIRED VERSION   INTERNAL ENDPOINT    EXTERNAL ENDPOINT   AGE
+zookeeper   3          3                 0.2.8     0.2.8             10.100.200.18:2181   N/A                 94s
+```
+
+> Note: when the Version field is set as well as Ready Replicas are equal to Replicas that signifies our cluster is in Ready state
+
+Additionally, check the output of describe command which should show the following cluster condition
+
+```
+$ kubectl describe zk
+
+Conditions:
+  Last Transition Time:    2020-05-18T10:17:03Z
+  Last Update Time:        2020-05-18T10:17:03Z
+  Status:                  True
+  Type:                    PodsReady
+```
+
+> Note: User should wait for the Pods Ready condition to be True
+
+```
+$ kubectl get all -l app=zookeeper
+NAME                     DESIRED   CURRENT   AGE
+statefulsets/zookeeper   3         3         2m
+
+NAME             READY     STATUS    RESTARTS   AGE
+po/zookeeper-0   1/1       Running   0          2m
+po/zookeeper-1   1/1       Running   0          1m
+po/zookeeper-2   1/1       Running   0          1m
+
+NAME                     TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)             AGE
+svc/zookeeper-client     ClusterIP   10.31.243.173   <none>        2181/TCP            2m
+svc/zookeeper-headless   ClusterIP   None            <none>        2888/TCP,3888/TCP   2m
+```
+
+> Note: If you want to configure non deafult service accounts to zookeeper pods, refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/doc/rbac.md).
+
+## 卸载 Zookeeper cluster
+
+#### Uninstall via helm
+
+Refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper#uninstalling-the-chart).
+
+```bash
+$ helm uninstall [RELEASE_NAME]
+  helm uninstall zookeeper
+```
+
+
+
+#### Manual uninstall
+
+```
+$ kubectl delete -f zk.yaml
+```
+
+## 卸载 Zookeeper operator
+
+> Note that the Zookeeper clusters managed by the Zookeeper operator will NOT be deleted even if the operator is uninstalled.
+
+#### Uninstall via helm
+
+Refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper-operator#uninstalling-the-chart).
+
+```bash
+$ helm uninstall [RELEASE_NAME]
+  helm uninstall zookeeper-operator
+```
+
+
+
+#### Manual uninstall
+
+To delete all clusters, delete all cluster CR objects before uninstalling the operator.
+
+```bash
+$ kubectl delete -f deploy/default_ns
+// or, depending on how you deployed it
+$ kubectl delete -f deploy/all_ns
+```
+
+## 外部访问 zookeeper cluster
+
+For debugging and development you might want to access the Zookeeper cluster directly. For example, if you created the cluster with name `zookeeper` in the `default` namespace you can forward the Zookeeper port from any of the pods (e.g. `zookeeper-0`) as follows:
+
+```bash
+$ kubectl port-forward -n default zookeeper-0 2181:2181 --address 192.168.1.180
+```
+
+
+
+# strimzi-kafka-operator
+
+## Starting Minikube
+
+This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
+
+```
+minikube start --memory=4096 # 2GB default memory isn't always enough
+```
+
+> NOTE: Make sure to start `minikube` with your configured VM. If need help look at the [documentation](https://kubernetes.io/docs/setup/minikube/#quickstart) for more.
+
+Once Minikube is started, let’s create our `kafka` namespace:
+
+```
+kubectl create namespace kafka
+```
+
+## Applying Strimzi installation file
+
+Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
+
+```
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+```
+
+## Provision the Apache Kafka cluster
+
+After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node each for Apache Zookeeper and Apache Kafka:
+
+```
+# Apply the `Kafka` Cluster CR file
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka 
+```
+
+We now need to wait while Kubernetes starts the required pods, services and so on:
+
+```
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka 
+```
+
+The above command might timeout if you’re downloading images over a slow connection. If that happens you can always run it again.
+
+## Send and receive messages
+
+Once the cluster is running, you can run a simple producer to send messages to a Kafka topic (the topic will be automatically created):
+
+```
+kubectl -n kafka run kafka-producer -ti --image=strimzi/kafka:0.19.0-kafka-2.5.0 --rm=true --restart=Never -- bin/kafka-console-producer.sh --broker-list my-cluster-kafka-bootstrap:9092 --topic my-topic
+```
+
+And to receive them in a different terminal you can run:
+
+```
+kubectl -n kafka run kafka-consumer -ti --image=strimzi/kafka:0.19.0-kafka-2.5.0 --rm=true --restart=Never -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+```
+
+Enjoy your Apache Kafka cluster, running on Minikube!
+
+
+
 # redis install
 
+## Using a Deployment
 
+To create the operator, you can directly create it with kubectl:
 
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/operator/all-redis-operator-resources.yaml
+```
 
+This will create a deployment named `redisoperator`.
+
+## Usage
+
+Once the operator is deployed inside a Kubernetes cluster, a new API will be accesible, so you'll be able to create, update and delete redisfailovers.
+
+In order to deploy a new redis-failover a [specification](https://github.com/spotahome/redis-operator/blob/master/example/redisfailover/basic.yaml) has to be created:
+
+```
+kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/master/example/redisfailover/basic.yaml
+```
+
+basic.yaml
+
+```yaml
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+      limits:
+        memory: 100Mi
+  redis:
+    replicas: 3
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        cpu: 400m
+        memory: 500Mi
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: redisfailover-persistent-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: rook-ceph-block
+          resources:
+            requests:
+              storage: 10Gi
+```
+
+This redis-failover will be managed by the operator, resulting in the following elements created inside Kubernetes:
+
+- `rfr-<NAME>`: Redis configmap
+- `rfr-<NAME>`: Redis statefulset
+- `rfr-<NAME>`: Redis service (if redis-exporter is enabled)
+- `rfs-<NAME>`: Sentinel configmap
+- `rfs-<NAME>`: Sentinel deployment
+- `rfs-<NAME>`: Sentinel service
+
+**NOTE**: `NAME` is the named provided when creating the RedisFailover. **IMPORTANT**: the name of the redis-failover to be created cannot be longer that 48 characters, due to prepend of redis/sentinel identification and statefulset limitation.
+
+## Persistence
+
+The operator has the ability of add persistence to Redis data. By default an `emptyDir` will be used, so the data is not saved.
+
+In order to have persistence, a `PersistentVolumeClaim` usage is allowed. The full [PVC definition has to be added](https://github.com/spotahome/redis-operator/blob/master/example/redisfailover/persistent-storage.yaml) to the Redis Failover Spec under the `Storage` section.
+
+```yaml
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover-persistent
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 3
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: redisfailover-persistent-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: rook-ceph-block
+          resources:
+            requests:
+              storage: 1Gi
+```
+
+**IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](https://github.com/spotahome/redis-operator/blob/master/example/redisfailover/persistent-storage-no-pvc-deletion.yaml).
+
+## Connection to the created Redis Failovers
+
+In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master. The connection parameters are the following:
+
+```
+url: rfs-<NAME>
+port: 26379
+master-name: mymaster
+```
+
+## Enabling redis auth
+
+To enable auth create a secret with a password field:
+
+```yaml
+echo -n "pass" > password
+kubectl create secret generic redis-auth --from-file=password
+
+## example config
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: redisfailover
+spec:
+  sentinel:
+    replicas: 3
+  redis:
+    replicas: 1
+  auth:
+    secretPath: redis-auth
+```
+
+You need to set secretPath as the secret name which is created before.
+
+## Cleanup
+
+### Operator and CRD
+
+If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted. Also, the CRD has to be deleted too:
+
+```
+kubectl delete crd redisfailovers.databases.spotahome.com
+```
+
+### Single Redis Failover
+
+Thanks to Kubernetes' `OwnerReference`, all the objects created from a redis-failover will be deleted after the custom resource is.
+
+```
+kubectl delete redisfailover <NAME>
+```
 
 ​    
 
-​    
+# elastic/cloud-on-k8s
+
+## 安装 ECK
+
+当然前提是你要有一个已经可运行的 [kubernetes](https://link.zhihu.com/?target=https%3A//www.qikqiak.com/tags/kubernetes/) 集群（1.11版本以上），最好确保你的每个节点上至少有4GB内存可以使用，因为我们知道 Elasticsearch 是比较消耗资源的。
+
+首先在集群中安装 ECK 对应的 Operator 资源对象：
+
+```bash
+$ kubectl apply -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yaml
+```
+
+安装成功后，会自动创建一个 elastic-system 的 namespace 以及一个 operator 的 Pod：
+
+```bash
+$ kubectl get pods -n elastic-system
+NAME                             READY   STATUS    RESTARTS   AGE
+elastic-operator-0               1/1     Running   1          15h
+```
+
+1. Install [custom resource definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) and the operator with its RBAC rules:
+
+   ```sh
+   kubectl apply -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yaml
+   ```
+
+2. Monitor the operator logs:
+
+   ```sh
+   kubectl -n elastic-system logs -f statefulset.apps/elastic-operator
+   ```
+
+
+
+## 安装 Elasticsearch cluster
+
+Apply a simple [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/7.9/getting-started.html) cluster specification, with one Elasticsearch node:
+
+If your Kubernetes cluster does not have any Kubernetes nodes with at least 2GiB of free memory, the pod will be stuck in `Pending` state. See [*Manage compute resources*](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-managing-compute-resources.html) for more information about resource requirements and how to configure them.
+
+```yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: quickstart
+spec:
+  version: 7.9.2
+  nodeSets:
+  - name: default
+    count: 1
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+      node.store.allow_mmap: false
+EOF
+```
+
+
+
+The operator automatically creates and manages Kubernetes resources to achieve the desired state of the Elasticsearch cluster. It may take up to a few minutes until all the resources are created and the cluster is ready for use.
+
+Setting `node.store.allow_mmap: false` has performance implications and should be tuned for production workloads as described in the [Virtual memory](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-virtual-memory.html) section.
+
+### Monitor cluster health and creation progress
+
+Get an overview of the current Elasticsearch clusters in the Kubernetes cluster, including health, version and number of nodes:
+
+```sh
+kubectl get elasticsearch
+```
+
+ 
+
+```sh
+NAME          HEALTH    NODES     VERSION   PHASE         AGE
+quickstart    green     1         7.9.2     Ready         1m
+```
+
+
+
+When you create the cluster, there is no `HEALTH` status and the `PHASE` is empty. After a while, the `PHASE` turns into `Ready`, and `HEALTH` becomes `green`.
+
+You can see that one Pod is in the process of being started:
+
+```sh
+kubectl get pods --selector='elasticsearch.k8s.elastic.co/cluster-name=quickstart'
+```
+
+ 
+
+```sh
+NAME                      READY   STATUS    RESTARTS   AGE
+quickstart-es-default-0   1/1     Running   0          79s
+```
+
+
+
+Access the logs for that Pod:
+
+```sh
+kubectl logs -f quickstart-es-default-0
+```
+
+
+
+### Request Elasticsearch access
+
+A ClusterIP Service is automatically created for your cluster:
+
+```sh
+kubectl get service quickstart-es-http
+```
+
+ 
+
+```sh
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+quickstart-es-http   ClusterIP   10.15.251.145   <none>        9200/TCP   34m
+```
+
+
+
+1. Get the credentials.
+
+   A default user named `elastic` is automatically created with the password stored in a Kubernetes secret:
+
+   ```sh
+   PASSWORD=$(kubectl get secret quickstart-es-elastic-user -o go-template='{{.data.elastic | base64decode}}')
+   ```
+
+2. Request the Elasticsearch endpoint.
+
+   From inside the Kubernetes cluster:
+
+   ```sh
+   curl -u "elastic:$PASSWORD" -k "https://quickstart-es-http:9200"
+   ```
+
+   From your local workstation, use the following command in a separate terminal:
+
+   ```sh
+   kubectl port-forward service/quickstart-es-http 9200
+   ```
+
+   Then request `localhost`:
+
+   ```sh
+   curl -u "elastic:$PASSWORD" -k "https://localhost:9200"
+   ```
+
+Disabling certificate verification using the `-k` flag is not recommended and should be used for testing purposes only. See: [Setup your own certificate](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-tls-certificates.html#k8s-setting-up-your-own-certificate)
+
+```json
+{
+  "name" : "quickstart-es-default-0",
+  "cluster_name" : "quickstart",
+  "cluster_uuid" : "XqWg0xIiRmmEBg4NMhnYPg",
+  "version" : {...},
+  "tagline" : "You Know, for Search"
+}
+```
+
+
+
+## 安装 a Kibana instance
+
+To deploy your [Kibana](https://www.elastic.co/guide/en/kibana/7.9/introduction.html#introduction) instance go through the following steps.
+
+1. Specify a Kibana instance and associate it with your Elasticsearch cluster:
+
+   ```yaml
+   cat <<EOF | kubectl apply -f -
+   apiVersion: kibana.k8s.elastic.co/v1
+   kind: Kibana
+   metadata:
+     name: quickstart
+   spec:
+     version: 7.9.2
+     count: 1
+     elasticsearchRef:
+       name: quickstart
+   EOF
+   ```
+
+2. Monitor Kibana health and creation progress.
+
+   Similar to Elasticsearch, you can retrieve details about Kibana instances:
+
+   ```sh
+   kubectl get kibana
+   ```
+
+   And the associated Pods:
+
+   ```sh
+   kubectl get pod --selector='kibana.k8s.elastic.co/name=quickstart'
+   ```
+
+3. Access Kibana.
+
+   A `ClusterIP` Service is automatically created for Kibana:
+
+   ```sh
+   kubectl get service quickstart-kb-http
+   ```
+
+   Use `kubectl port-forward` to access Kibana from your local workstation:
+
+   ```sh
+   kubectl port-forward service/quickstart-kb-http 5601
+   ```
+
+   Open `https://localhost:5601` in your browser. Your browser will show a warning because the self-signed certificate configured by default is not verified by a known certificate authority and not trusted by your browser. You can temporarily acknowledge the warning for the purposes of this quick start but it is highly recommended that you [configure valid certificates](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-tls-certificates.html#k8s-setting-up-your-own-certificate) for any production deployments.
+
+   Login as the `elastic` user. The password can be obtained with the following command:
+
+   ```sh
+   kubectl get secret quickstart-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode; echo
+   ```
+
+## Upgrade your deployment
+
+You can add and modify most elements of the original cluster specification provided that they translate to valid transformations of the underlying Kubernetes resources (e.g., existing volume claims cannot be resized). The operator will attempt to apply your changes with minimal disruption to the existing cluster. You should ensure that the Kubernetes cluster has sufficient resources to accommodate the changes (extra storage space, sufficient memory and CPU resources to temporarily spin up new pods etc.).
+
+For example, you can grow the cluster to three Elasticsearch nodes:
+
+```yaml
+cat <<EOF | kubectl apply -f -
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: quickstart
+spec:
+  version: 7.9.2
+  nodeSets:
+  - name: default
+    count: 3
+    config:
+      node.master: true
+      node.data: true
+      node.ingest: true
+      node.store.allow_mmap: false
+EOF
+```
+
+## Volume claim templates
+
+By default, the operator creates a [`PersistentVolumeClaim`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) with a capacity of 1Gi for each pod in an Elasticsearch cluster to prevent data loss in case of accidental pod deletion. For production workloads, you should define your own volume claim template with the desired storage capacity and (optionally) the Kubernetes [storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/) to associate with the persistent volume. The name of the volume claim must always be `elasticsearch-data`.
+
+```yaml
+spec:
+  nodeSets:
+  - name: default
+    count: 3
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: standard
+```
+
+ECK automatically deletes PersistentVolumeClaim resources if they are not required for any Elasticsearch node. The corresponding PersistentVolume may be preserved, depending on the configured [storage class reclaim policy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy).
+
+## 卸载
+
+Uninstall ECK
+
+Before uninstalling the operator, remove all Elastic resources in all namespaces:
+
+```shell
+kubectl get namespaces --no-headers -o custom-columns=:metadata.name \
+  | xargs -n1 kubectl delete elastic --all -n
+```
+
+
+
+This deletes all underlying Elasticsearch, Kibana, and APM Server resources (pods, secrets, services, etc.).
+
+Then, you can uninstall the operator:
+
+```shell
+kubectl delete -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yaml
+```
+
+
 
 
 ----------
 
-# Helm 安装： #
+# Helm 安装 #
 
 ----------
 
