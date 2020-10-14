@@ -18,7 +18,7 @@
 
  
 
-\1. 提供搜索引擎的服务器都在Zookeeper中创建znode,zk.create("/search/nodes/node1",
+1. 提供搜索引擎的服务器都在Zookeeper中创建znode,zk.create("/search/nodes/node1",
 
 "hostname".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateFlags.EPHEMERAL);
 

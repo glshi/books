@@ -1902,7 +1902,7 @@ kubectl delete -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yam
 
 ----------
 
-快速安装：
+## 快速安装
 
 ```bash
 git clone https://github.com/prometheus-operator/kube-prometheus.git
@@ -1914,11 +1914,11 @@ kubectl create -f manifests/
 
 ```
 
-卸载：
+## 卸载
 
 	kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 
-访问 dashboards：
+## 访问 dashboards
 
 	$ kubectl --namespace monitoring port-forward svc/prometheus-k8s 9090 --address 192.168.1.180
 	Prometheus  http://localhost:9090
