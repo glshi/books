@@ -470,6 +470,8 @@ kubectl -n rook-ceph get cephcluster
 for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do kubectl patch crd -n rook-ceph $CRD --type merge -p '{"metadata":{"finalizers": [null]}}'; done
 ```
 
+
+
 ## 块存储
 
 Create the storage class.
@@ -606,7 +608,40 @@ kubectl -n rook-ceph delete cephfilesystem myfs
 
 Note: If the “preservePoolsOnDelete” filesystem attribute is set to true, the above command won’t delete the pools. Creating again the filesystem with the same CRD will reuse again the previous pools.
 
+## 三种存储使用场景
 
+- 块存储
+
+   (适合单客户端使用)
+
+  - 典型设备：磁盘阵列，硬盘。
+  - 使用场景：
+    - a. docker容器、虚拟机远程挂载磁盘存储分配。
+    - b. 日志存储。
+    - ...
+
+- 文件存储
+
+   (适合多客户端有目录结构)
+
+  - 典型设备：FTP、NFS服务器。
+  - 使用场景：
+    - a. 日志存储。
+    - b. 多个用户有目录结构的文件存储共享。
+    - ...
+
+- 对象存储
+
+   (适合更新变动较少的数据，没有目录结构，不能直接打开/修改文件)
+
+  - 典型设备：s3, swift。
+  - 使用场景：
+    - a. 图片存储。
+    - b. 视频存储。
+    - c. 文件。
+    - d. 软件安装包。
+    - e. 归档数据。
+    - ...
 
 ## StorageClass and PVC
 
@@ -953,11 +988,7 @@ lvresize:对lv大小的容量进行调整
 
 # presslabs/mysql-operator
 
-## Getting started
-
-Deploying and using the MySQL operator requires for it to have access to a Kubernetes cluster and to have installed [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) and [helm](https://github.com/helm/helm#install).
-
-## Controller deploy
+## 安装 mysql operator
 
 To deploy this controller, use the provided helm chart by running:
 
@@ -970,13 +1001,13 @@ For more information about chart values see chart [README](https://github.com/pr
 
 **NOTE**: At every deploy a random password is generated for the orchestrator user. When running `helm upgrade` this will change the password on the orchestrator side but not in the clusters and this will break the communication between orchestrator and MySQL clusters. To solve this either use `helm upgrade --reuse-values` or specify the orchestrator password. We recommend specifying the orchestrator password.
 
-## Specify the cluster credentials
+## 配置 cluster credentials
 
 Before creating a cluster, you need a secret that contains the ROOT_PASSWORD key. An example for this secret can be found at [examples/example-cluster-secret.yaml](https://github.com/presslabs/mysql-operator/blob/master/examples/example-cluster-secret.yaml).
 
 Create a file named `example-cluster-secret.yaml` and copy into it the following YAML code:
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -1001,7 +1032,7 @@ This secret contains information about the credentials used to connect to the cl
 
 Moreover, the controller will add some extra fields into this secret with other internal credentials that are used, such as the orchestrator user, metrics exporter used, and so on.
 
-## Create and deploy the cluster
+## 安装 mysql cluster
 
 Now, to create a cluster you need just a simple YAML file that defines it. Create a file named `example-cluster.yaml` and copy into it the following YAML code:
 
@@ -1030,7 +1061,7 @@ $ kubectl apply -f example-cluster-secret.yaml
 $ kubectl apply -f example-cluster.yaml
 ```
 
-## Cluster configuration overview
+## 集群配置 overview
 
 Some important fields of `MySQLCluster` resource from `spec` are described in the following table:
 
@@ -1054,7 +1085,7 @@ Some important fields of `MySQLCluster` resource from `spec` are described in th
 
 For more detailed information about cluster structure and configuration fields can be found in [godoc](https://godoc.org/github.com/presslabs/mysql-operator/pkg/apis/mysql/v1alpha1#MysqlClusterSpec).
 
-## Cluster data volume configuration
+## 持久卷 configuration
 
 Currently, for a cluster generated with the MySQL operator you can set one of the following volume sources for MySQL data:
 
@@ -1062,7 +1093,7 @@ Currently, for a cluster generated with the MySQL operator you can set one of th
 - Host Path (represents an existing directory on the host)
 - Empty Dir (represents a temporary directory that shares a pod's lifetime).
 
-## Persistent volume claim
+**Persistent volume claim**
 
 An example to specify the PVC configuration:
 
@@ -1090,7 +1121,9 @@ Note that the Kubernetes cluster needs to have a default storage class configure
 >
 > Some additional information related to this topic can be found on issue [#168](https://github.com/presslabs/mysql-operator/issues/168).
 
-## To list the deployed clusters use
+## 查看集群状态
+
+**list the deployed clusters use**
 
 ```shell
 $ kubectl get mysql
@@ -1098,7 +1131,7 @@ NAME         AGE
 my-cluster   1m
 ```
 
-## To check cluster state use
+**check cluster state use**
 
 ```shell
 $ kubectl describe mysql my-cluster
@@ -1114,7 +1147,7 @@ Status:
 ...
 ```
 
-## Access the orchestrator
+## 访问 the orchestrator
 
 The service `<release-name>-mysql-operator` exposes port 80. Via this port you will be able to talk to the orchestrator leader. You can either port forward this service to localhost, or use a service of type load balancer or enable the ingress.
 
@@ -1129,7 +1162,7 @@ Then type `localhost:8080` in a browser.
 
 
 
-## Navicat for MySQL 1045
+## 连接异常 1045
 
 ```bash
 # root 密码是 base64 编码，需要解码才能看到
@@ -1152,7 +1185,7 @@ show databases;
 use mysql;
 ```
 
-## 新增用户
+**新增用户**
 
 - 用户名`myuser` 密码`mypassword`
 
@@ -1168,7 +1201,7 @@ mysql -u myuser -p #测试是否创建成功
 
 - [ERROR 1819 (HY000): Your password does not satisfy the current policy requirements](https://links.jianshu.com/go?to=https%3A%2F%2Fwww.cnblogs.com%2Fivictor%2Fp%2F5142809.html)
 
-## 为用户授权
+**为用户授权**
 
 - a.授权格式：grant 权限 on 数据库.* to 用户名@登录主机 identified by '密码';
 - b.登录MYSQL，这里以ROOT身份登录：
@@ -1194,7 +1227,7 @@ grant select,delete,update,create,drop on *.* to 'test'@'%' identified by 'test1
 flush privileges; #刷新系统权限表
 ```
 
-## 创建常用库
+**创建常用库**
 
 ```sql
 create database u_member default charset utf8mb4 collate utf8mb4_unicode_ci;
@@ -1218,7 +1251,7 @@ helm install zookeeper-operator pravega/zookeeper-operator
 
 ## 安装 Zookeeper cluster
 
-#### Install via helm
+**Install via helm**
 
 To understand how to deploy a sample zookeeper cluster using helm, refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper#installing-the-chart).
 
@@ -1229,7 +1262,7 @@ $ helm install [RELEASE_NAME] pravega/zookeeper --version=[VERSION]
 helm install zookeeper pravega/zookeeper
 ```
 
-#### Manual deployment
+**Manual deployment**
 
 Create a Yaml file called `zk.yaml` with the following content to install a 3-node Zookeeper cluster.
 
@@ -1287,7 +1320,7 @@ svc/zookeeper-headless   ClusterIP   None            <none>        2888/TCP,3888
 
 ## 卸载 Zookeeper cluster
 
-#### Uninstall via helm
+**Uninstall via helm**
 
 Refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper#uninstalling-the-chart).
 
@@ -1298,7 +1331,7 @@ $ helm uninstall [RELEASE_NAME]
 
 
 
-#### Manual uninstall
+**Manual uninstall**
 
 ```
 $ kubectl delete -f zk.yaml
@@ -1308,7 +1341,7 @@ $ kubectl delete -f zk.yaml
 
 > Note that the Zookeeper clusters managed by the Zookeeper operator will NOT be deleted even if the operator is uninstalled.
 
-#### Uninstall via helm
+**Uninstall via helm**
 
 Refer to [this](https://github.com/pravega/zookeeper-operator/blob/master/charts/zookeeper-operator#uninstalling-the-chart).
 
@@ -1319,7 +1352,7 @@ $ helm uninstall [RELEASE_NAME]
 
 
 
-#### Manual uninstall
+**Manual uninstall**
 
 To delete all clusters, delete all cluster CR objects before uninstalling the operator.
 
@@ -1329,7 +1362,7 @@ $ kubectl delete -f deploy/default_ns
 $ kubectl delete -f deploy/all_ns
 ```
 
-## 外部访问 zookeeper cluster
+## 访问 zookeeper cluster
 
 For debugging and development you might want to access the Zookeeper cluster directly. For example, if you created the cluster with name `zookeeper` in the `default` namespace you can forward the Zookeeper port from any of the pods (e.g. `zookeeper-0`) as follows:
 
@@ -1341,7 +1374,7 @@ $ kubectl port-forward -n default zookeeper-0 2181:2181 --address 192.168.1.180
 
 # strimzi-kafka-operator
 
-## Starting Minikube
+## 启动 Minikube
 
 This assumes that you have the latest version of the `minikube` binary, which you can get [here](https://kubernetes.io/docs/setup/minikube/#installation).
 
@@ -1357,7 +1390,7 @@ Once Minikube is started, let’s create our `kafka` namespace:
 kubectl create namespace kafka
 ```
 
-## Applying Strimzi installation file
+## 使用 Strimzi installation file
 
 Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleBindings` and some **Custom Resource Definitions** (`CRDs`). The CRDs define the schemas used for declarative management of the Kafka cluster, Kafka topics and users.
 
@@ -1365,7 +1398,7 @@ Next we apply the Strimzi install files, including `ClusterRoles`, `ClusterRoleB
 kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
 ```
 
-## Provision the Apache Kafka cluster
+## 持久化 Kafka cluster
 
 After that we feed Strimzi with a simple **Custom Resource**, which will then give you a small persistent Apache Kafka Cluster with one node each for Apache Zookeeper and Apache Kafka:
 
@@ -1382,7 +1415,7 @@ kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
 
 The above command might timeout if you’re downloading images over a slow connection. If that happens you can always run it again.
 
-## Send and receive messages
+## 发送和接受消息
 
 Once the cluster is running, you can run a simple producer to send messages to a Kafka topic (the topic will be automatically created):
 
@@ -1402,7 +1435,7 @@ Enjoy your Apache Kafka cluster, running on Minikube!
 
 # redis install
 
-## Using a Deployment
+## 安装 operator
 
 To create the operator, you can directly create it with kubectl:
 
@@ -1412,7 +1445,7 @@ kubectl create -f https://raw.githubusercontent.com/spotahome/redis-operator/mas
 
 This will create a deployment named `redisoperator`.
 
-## Usage
+## 安装 cluster
 
 Once the operator is deployed inside a Kubernetes cluster, a new API will be accesible, so you'll be able to create, update and delete redisfailovers.
 
@@ -1470,7 +1503,7 @@ This redis-failover will be managed by the operator, resulting in the following 
 
 **NOTE**: `NAME` is the named provided when creating the RedisFailover. **IMPORTANT**: the name of the redis-failover to be created cannot be longer that 48 characters, due to prepend of redis/sentinel identification and statefulset limitation.
 
-## Persistence
+## 持久化存储
 
 The operator has the ability of add persistence to Redis data. By default an `emptyDir` will be used, so the data is not saved.
 
@@ -1501,7 +1534,7 @@ spec:
 
 **IMPORTANT**: By default, the persistent volume claims will be deleted when the Redis Failover is. If this is not the expected usage, a `keepAfterDeletion` flag can be added under the `storage` section of Redis. [An example is given](https://github.com/spotahome/redis-operator/blob/master/example/redisfailover/persistent-storage-no-pvc-deletion.yaml).
 
-## Connection to the created Redis Failovers
+## 连接 Redis cluster
 
 In order to connect to the redis-failover and use it, a [Sentinel-ready](https://redis.io/topics/sentinel-clients) library has to be used. This will connect through the Sentinel service to the Redis node working as a master. The connection parameters are the following:
 
@@ -1511,7 +1544,7 @@ port: 26379
 master-name: mymaster
 ```
 
-## Enabling redis auth
+## 配置 redis auth
 
 To enable auth create a secret with a password field:
 
@@ -1535,9 +1568,9 @@ spec:
 
 You need to set secretPath as the secret name which is created before.
 
-## Cleanup
+## 卸载 redis cluster
 
-### Operator and CRD
+**Operator and CRD**
 
 If you want to delete the operator from your Kubernetes cluster, the operator deployment should be deleted. Also, the CRD has to be deleted too:
 
@@ -1545,7 +1578,7 @@ If you want to delete the operator from your Kubernetes cluster, the operator de
 kubectl delete crd redisfailovers.databases.spotahome.com
 ```
 
-### Single Redis Failover
+**Single Redis Failover**
 
 Thanks to Kubernetes' `OwnerReference`, all the objects created from a redis-failover will be deleted after the custom resource is.
 
@@ -1620,7 +1653,7 @@ The operator automatically creates and manages Kubernetes resources to achieve t
 
 Setting `node.store.allow_mmap: false` has performance implications and should be tuned for production workloads as described in the [Virtual memory](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-virtual-memory.html) section.
 
-### Monitor cluster health and creation progress
+**Monitor cluster health and creation progress**
 
 Get an overview of the current Elasticsearch clusters in the Kubernetes cluster, including health, version and number of nodes:
 
@@ -1662,7 +1695,7 @@ kubectl logs -f quickstart-es-default-0
 
 
 
-### Request Elasticsearch access
+**Request Elasticsearch access**
 
 A ClusterIP Service is automatically created for your cluster:
 
@@ -1777,7 +1810,7 @@ To deploy your [Kibana](https://www.elastic.co/guide/en/kibana/7.9/introduction.
    kubectl get secret quickstart-es-elastic-user -o=jsonpath='{.data.elastic}' | base64 --decode; echo
    ```
 
-## Upgrade your deployment
+## 升级 your deployment
 
 You can add and modify most elements of the original cluster specification provided that they translate to valid transformations of the underlying Kubernetes resources (e.g., existing volume claims cannot be resized). The operator will attempt to apply your changes with minimal disruption to the existing cluster. You should ensure that the Kubernetes cluster has sufficient resources to accommodate the changes (extra storage space, sufficient memory and CPU resources to temporarily spin up new pods etc.).
 
@@ -1802,7 +1835,7 @@ spec:
 EOF
 ```
 
-## Volume claim templates
+## 持久卷 claim templates
 
 By default, the operator creates a [`PersistentVolumeClaim`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) with a capacity of 1Gi for each pod in an Elasticsearch cluster to prevent data loss in case of accidental pod deletion. For production workloads, you should define your own volume claim template with the desired storage capacity and (optionally) the Kubernetes [storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/) to associate with the persistent volume. The name of the volume claim must always be `elasticsearch-data`.
 
@@ -1825,7 +1858,7 @@ spec:
 
 ECK automatically deletes PersistentVolumeClaim resources if they are not required for any Elasticsearch node. The corresponding PersistentVolume may be preserved, depending on the configured [storage class reclaim policy](https://kubernetes.io/docs/concepts/storage/storage-classes/#reclaim-policy).
 
-## 卸载
+## 卸载 ECK cluster
 
 Uninstall ECK
 
@@ -1855,19 +1888,19 @@ kubectl delete -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yam
 
 ----------
 
-1：源码安装
+## 1：源码安装
 
     wget https://storage.googleapis.com/kubernetes-helm/helm-v2.9.1-linux-amd64.tar.gz
     tar -zxvf helm-v2.9.1-linux-amd64.tar.gz
     mv linux-amd64/helm /usr/local/bin/helm
 
-2：脚本安装
+## 2：脚本安装
 
 	$ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
 	$ chmod 700 get_helm.sh
 	$ ./get_helm.sh
 
-3：安装tiller
+## 3：安装tiller
 
 	docker pull jessestuart/tiller:v2.16.8
 	docker tag jessestuart/tiller:v2.16.8 gcr.io/kubernetes-helm/tiller:v2.16.8
@@ -1902,7 +1935,7 @@ kubectl delete -f https://download.elastic.co/downloads/eck/1.2.1/all-in-one.yam
 
 ----------
 
-## 快速安装
+## 安装 kube-prometheus
 
 ```bash
 git clone https://github.com/prometheus-operator/kube-prometheus.git
@@ -1914,7 +1947,7 @@ kubectl create -f manifests/
 
 ```
 
-## 卸载
+## 卸载 kube-prometheus
 
 	kubectl delete --ignore-not-found=true -f manifests/ -f manifests/setup
 
