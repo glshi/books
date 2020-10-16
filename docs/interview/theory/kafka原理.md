@@ -1,4 +1,4 @@
-## 一、Kafka简介
+## 一、Kafka 简介
 
 Kafka是一种高吞吐量、分布式、基于发布/订阅的消息系统，最初由LinkedIn公司开发，使用Scala语言编写，目前是Apache的开源项目。
 
@@ -6,7 +6,7 @@ Kafka是一种高吞吐量、分布式、基于发布/订阅的消息系统，�
 
 本文主要简单介绍Kafka的设计原理。
 
-## 二、Kafka架构
+## 二、Kafka 架构
 
 ![img](https://blog-10039692.file.myqcloud.com/1503038310607_9038_1503038310779.png)
 
@@ -19,9 +19,9 @@ Kafka是一种高吞吐量、分布式、基于发布/订阅的消息系统，�
 - Producer：消息生产者
 - Consumer：消息消费者
 - Consumer Group：消费者分组，每个Consumer必须属于一个group
-- Zookeeper：保存着集群broker、topic、partition等meta数据；另外，还负责broker故障发现，partition leader选举，[负载均衡](https://cloud.tencent.com/product/clb?from=10680)等功能
+- Zookeeper：保存着集群broker、topic、partition等meta数据；另外，还负责broker故障发现，partition leader选举，负载均衡等功能
 
-## 三、Kafka设计原理
+## 三、Kafka 设计原理
 
 ### 3.1 数据存储设计
 
@@ -61,7 +61,7 @@ partition物理上由多个segment文件组成，每个segment大小相等，顺
 
 ![img](https://blog-10039692.file.myqcloud.com/1503038445835_8365_1503038446150.png)
 
-## 总结
+**总结**
 
 查找某个offset的消息，先二分法找出消息所在的segment文件（因为每个segment的命名都是以该文件中消息offset最小的值命名）；然后，加载对应的.index索引文件到内存，同样二分法找出小于等于给定offset的最大的那个offset记录（相对offset，position）；最后，根据position到.log文件中，顺序查找出offset等于给定offset值的消息。
 
@@ -84,7 +84,7 @@ partition物理上由多个segment文件组成，每个segment大小相等，顺
 - partition内消息是有序的，Consumer通过pull方式消费消息。
 - Kafka不删除已消费的消息
 
-## 队列模式
+**队列模式**
 
 队列模式，指每条消息只会有一个Consumer消费到。Kafka保证同一Consumer Group中只有一个Consumer会消费某条消息。
 
@@ -109,7 +109,7 @@ broker对Consumer设计原理：
 
 从Consumer的角度来看，最多只能读取到High watermark的位置，后面的消息对消费者不可见，因为未完全复制的数据还没可靠存储，有丢失可能。
 
-## 发布订阅模式
+**发布订阅模式**
 
 发布订阅模式，又指广播模式，Kafka保证topic的每条消息会被所有Consumer Group消费到，而对于同一个Consumer Group，还是保证只有一个Consumer实例消费到这条消息。
 
@@ -131,7 +131,7 @@ Replica均匀分布到整个集群，Replica的算法如下：
 
 broker对replica管理： 选举出一个broker作为controller，由它Watch Zookeeper，负责partition的replica的集群分配，以及leader切换选举等流程。
 
-## In-Sync-Replica(ISR)
+**In-Sync-Replica(ISR)**
 
 分布式系统在处理节点故障时，需要预先明确节点的”failure”和”alive”的定义。对于Kafka节点，判断是”alive”有以下两个条件：
 
@@ -142,7 +142,7 @@ Kafka将满足以上条件的replica节点认为是”in sync”（同步中）�
 
 Kafka的Zookeeper维护了每个partition的ISR信息，理想情况下，ISR包含了partition的所有replica所在的broker节点信息，而当某些节点不满足以上条件时，ISR可能只包含部分replica。例如，上图中的TopicA-part0的ISR列表可能是[broker1,broker2,broker3]，也可能是[broker1,broker3]和[broker1]。
 
-## 数据可靠性
+**数据可靠性**
 
 Kafka如何保证数据可靠性？首先看下，Producer生产一条消息，该消息被认为是”committed”（即broker认为消息已经可靠存储）的过程：
 
@@ -160,7 +160,7 @@ ISR机制下的数据复制，既不是完全的同步复制，也不是单纯�
 
 Kafka本身定位于高性能的MQ，更多注重消息吞吐量，在此基础上结合ISR的机制去尽量保证消息的可靠性，但不是绝对可靠的。
 
-## 服务可用性
+**服务可用性**
 
 Kafka所有收发消息请求都由leader节点处理，由以上数据可靠性设计可知，当ISR的follower replica故障后，leader会及时地从ISR列表中把它剔除掉，并不影响服务可用性，那么当leader故障后会怎样呢？如何选举新的leader？
 
@@ -173,7 +173,7 @@ leader选举
 
 因此，可以看出，只要ISR中至少有一个replica，Kafka就能保证服务的可用性（但不保证网络分区下的可用性）。
 
-## 容灾和数据一致性
+**容灾和数据一致性**
 
 分布式系统的容灾能力，跟其本身针对数据一致性考虑所选择的算法有关，例如，Zookeeper的Zab算法，raft算法等。Kafka的ISR机制和这些Majority Vote算法对比如下：
 
@@ -196,7 +196,7 @@ leader选举
 
 因此，为了减少数据丢失的概率，可以设置Kafka的ISR最小replica数，低于该值后直接返回不可用，当然是以牺牲一定可用性和吞吐量为前提了。
 
-## 重复消息
+**重复消息**
 
 消息传输有三种方式：
 
@@ -224,7 +224,7 @@ Kafka实现了第二种方式，即，可能存在重复消息，需要业务自
 
 这是用户在消息吞吐量和持久化之间做的权衡选择，持久化等级越高，生产消息吞吐量越小，反之，持久化等级越低，吞吐量越高。
 
-### 3.6 HA基本原理
+### 3.6  HA 基本原理
 
 **broker HA**
 

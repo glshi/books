@@ -1,11 +1,13 @@
-### 为什么使用队列，为什么使用RabbitMQ队列
+# RabbitMQ 
+
+## 为什么使用消息队列
 
 消息队列用于系统之间解耦，通过高性能消息中间件，提升系统吞吐量，降低导致系统耦合。 当前有各种消息队列，RabbitMQ、Kafka、ActiveMQ等，为什么使用RabbitMQ？ 消息队列从使用场景来分为两类：
 
 - 一类是大数据的数据流处理，数据采集者作为生产者数据通过消息队列从到后端处理。这种场景要求高吞吐高并发，Kafka专门为这种场景设计。
 - 另一类是消息高可靠低时延在系统之间传递，这种场景要求可靠性高，消息不能丢；要求时延低。AMQP协议专门为这种场景设计，RabbitMQ是AMQP协议实现者之一，也是当前使用的最广的AMQP消息队列。
 
-### 典型的消息队列处理流程
+## 消息队列处理流程
 
 以一个提供网页转PDF的Web应用为例，描述消息处理流程。
 
@@ -16,78 +18,24 @@
 3. RabbitMQ的Exchange接收到消息后，将消息路由到某一个队列
 4. PEF生成器消费队列的消息，生成PDF
 
-### 基本概念
-
-![RabbitMQ基础插图(1)](https://upload-images.jianshu.io/upload_images/5826441-af147cca2925ff2c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1000/format/webp)
-
-- 生产者
-- 消费者
-- 服务器 Broker：Broker是一个物理上的服务器（或虚拟机），它是部署了消息中间件并接收处理客户端请求的实体。
-- 队列 Queue：用于存储消息的一块缓存
-- 消息 Message
-- 连接 Connection：应用与RabbitMQ Broker之间的TCP连接
-- 通道 Channel：连接内的虚拟连接，应用生产或消费队列中的消息时，都是通过Channel完成的
-- 绑定 Binding：Queue与Exchange之间连接
-- 路由键 Routing Key：Exchange根据Routing Key来决定将消息投递到哪个队列，类似消息的地址
-- 用户 User：RabbitMQ连接需要用户密码认证；同时可以给用户设定读、写等权限
-- 虚拟主机 Virtual Host：Virtual Host用来区使用同一个RabbitMQ实例的多个应用。connections, exchanges, queues, bindings, user permissions, policies and some other things 都属于Virtual Host。
-
-### Exchange 类别
-
-- Direct Exchange
-
-![RabbitMQ基础插图(2)](https://www.cloudamqp.com/img/blog/direct-exchange.png) Direct Exchange 根据 Routing Key 投递消息，Routing Key 由生产者在生产消息时候设置到消息头内。 Direct Exchange投递规则是 **精确匹配 Binding Key 与 Routing Key** 。
-
-- Default Exchange
-
-Default Exchange 是一个系统预定义的、Routing Key 为空字符串 “” 的 Direct Exchange 。每个 Queue 都自动绑定到 Default Exchange ，其 Routing Key 就是 队列名称。
-
-- Topic Exchange
-
-![RabbitMQ基础插图(3)](https://www.cloudamqp.com/img/blog/topic-exchange.png) Topic Exchange 根据通配符匹配规则投递消息：匹配 Routing Key 与 Routing Pattern ， Routing Pattern 在 binding 时候指定。
-
-- Fanout Exchange
-
-![RabbitMQ基础插图(4)](https://www.cloudamqp.com/img/blog/fanout-exchange.png) Fanout Exchange 将消息投递到所有队列。
-
-- Headers Exchange
-
-![RabbitMQ基础插图(5)](https://www.cloudamqp.com/img/blog/headers-exchange.png) Headers Exchange 根据头部选项投递消息，通过 “x-match” 定义匹配动作: any, all
-
-- Dead Letter Exchange
-
-如果消息找不到投递队列，则会被丢弃；RabbitMQ提供了 Dead Letter Exchange ，用于记录无法投递的消息。
-
-
-
-
-
-
-
-
-
-
-
-
-
 # RabbitMQ 中的概念模型
 
-##### 消息模型
+## 消息模型
 
 所有 MQ 产品从模型抽象上来说都是一样的过程：
- 消费者（consumer）订阅某个队列。生产者（producer）创建消息，然后发布到队列（queue）中，最后将消息发送到监听的消费者。
+消费者（consumer）订阅某个队列。生产者（producer）创建消息，然后发布到队列（queue）中，最后将消息发送到监听的消费者。
 
 ![img](https:////upload-images.jianshu.io/upload_images/5015984-066ff248d5ff8eed.png?imageMogr2/auto-orient/strip|imageView2/2/w/401/format/webp)
 
-消息流
+​																						消息流
 
-##### RabbitMQ 基本概念
+## RabbitMQ 基本概念
 
 上面只是最简单抽象的描述，具体到 RabbitMQ 则有更详细的概念需要解释。上面介绍过 RabbitMQ 是 AMQP 协议的一个开源实现，所以其内部实际上也是 AMQP 中的基本概念：
 
 ![img](https:////upload-images.jianshu.io/upload_images/5015984-367dd717d89ae5db.png?imageMogr2/auto-orient/strip|imageView2/2/w/554/format/webp)
 
-RabbitMQ 内部结构
+​																				RabbitMQ 内部结构
 
 1. Message
     消息，消息是不具名的，它由消息头和消息体组成。消息体是不透明的，而消息头则由一系列的可选属性组成，这些属性包括routing-key（路由键）、priority（相对于其他消息的优先权）、delivery-mode（指出该消息可能需要持久性存储）等。
@@ -110,51 +58,19 @@ RabbitMQ 内部结构
 10. Broker
      表示消息队列服务器实体。
 
-##### AMQP 中的消息路由
+## AMQP 中的消息路由
 
 AMQP 中消息的路由过程和 Java 开发者熟悉的 JMS 存在一些差别，AMQP 中增加了 Exchange 和 Binding 的角色。生产者把消息发布到 Exchange 上，消息最终到达队列并被消费者接收，而 Binding 决定交换器的消息应该发送到那个队列。
 
 ![img](https:////upload-images.jianshu.io/upload_images/5015984-7fd73af768f28704.png?imageMogr2/auto-orient/strip|imageView2/2/w/484/format/webp)
 
-AMQP 的消息路由过程
 
-##### Exchange 类型
-
-Exchange分发消息时根据类型的不同分发策略有区别，目前共四种类型：direct、fanout、topic、headers 。headers 匹配 AMQP 消息的 header 而不是路由键，此外 headers 交换器和 direct 交换器完全一致，但性能差很多，目前几乎用不到了，所以直接看另外三种类型：
-
-1. direct
-
-   ![img](https:////upload-images.jianshu.io/upload_images/5015984-13db639d2c22f2aa.png?imageMogr2/auto-orient/strip|imageView2/2/w/385/format/webp)
-
-   direct 交换器
-
-   消息中的路由键（routing key）如果和 Binding 中的 binding key 一致， 交换器就将消息发到对应的队列中。路由键与队列名完全匹配，如果一个队列绑定到交换机要求路由键为“dog”，则只转发 routing key 标记为“dog”的消息，不会转发“dog.puppy”，也不会转发“dog.guard”等等。它是完全匹配、单播的模式。
-
-2. fanout
-
-   ![img](https:////upload-images.jianshu.io/upload_images/5015984-2f509b7f34c47170.png?imageMogr2/auto-orient/strip|imageView2/2/w/463/format/webp)
-
-   fanout 交换器
-
-   每个发到 fanout 类型交换器的消息都会分到所有绑定的队列上去。fanout 交换器不处理路由键，只是简单的将队列绑定到交换器上，每个发送到交换器的消息都会被转发到与该交换器绑定的所有队列上。很像子网广播，每台子网内的主机都获得了一份复制的消息。fanout 类型转发消息是最快的。
-
-3. topic
-
-   ![img](https:////upload-images.jianshu.io/upload_images/5015984-275ea009bdf806a0.png?imageMogr2/auto-orient/strip|imageView2/2/w/558/format/webp)
-
-   topic 交换器
-
-   topic 交换器通过模式匹配分配消息的路由键属性，将路由键和某个模式进行匹配，此时队列需要绑定到一个模式上。它将路由键和绑定键的字符串切分成单词，这些单词之间用点隔开。它同样也会识别两个通配符：符号“#”和符号“
-
-   ”。#匹配0个或多个单词，
-
-   匹配不多不少一个单词。
 
 # RabbitMQ
 
 RabbitMQ是一个开源的消息代理和队列服务器，用来通过普通协议在不同的应用之间共享数据(跨平台跨语言)。RabbitMQ是使用Erlang语言编写，并且基于AMQP协议实现。
 
-#### RabbitMQ的优势：
+## RabbitMQ的优势：
 
 - **`可靠性(Reliablity)：`**使用了一些机制来保证可靠性，比如持久化、传输确认、发布确认。
 - **`灵活的路由(Flexible Routing)：`**在消息进入队列之前，通过Exchange来路由消息。对于典型的路由功能，Rabbit已经提供了一些内置的Exchange来实现。针对更复杂的路由功能，可以将多个Exchange绑定在一起，也通过插件机制实现自己的Exchange。
@@ -166,23 +82,25 @@ RabbitMQ是一个开源的消息代理和队列服务器，用来通过普通协
 - **`跟踪机制(Tracing)：`**如果消息异常，RabbitMQ提供了消息的跟踪机制，使用者可以找出发生了什么。
 - **`插件机制(Plugin System)：`**提供了许多插件，来从多方面进行扩展，也可以编辑自己的插件。
 
-#### RabbitMQ的整体架构
+## RabbitMQ的整体架构
 
 ![img](https:////upload-images.jianshu.io/upload_images/17039633-b0adf1dfade2f122.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
 
-整体架构.png
 
-#### RabbitMQ的消息流转
+
+## RabbitMQ的消息流转
 
 ![img](https:////upload-images.jianshu.io/upload_images/17039633-6fe89a2074201de7.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp)
 
-消息流转
 
-#### RabbitMQ各组件功能
+
+## RabbitMQ各组件功能
+
+
 
 ![img](https:////upload-images.jianshu.io/upload_images/5015984-367dd717d89ae5db.png?imageMogr2/auto-orient/strip|imageView2/2/w/554/format/webp)
 
-MacDown Screenshot
+
 
 - **`Broker：`**标识消息队列服务器实体.
 - **`Virtual Host：`**虚拟主机。标识一批交换机、消息队列和相关对象。虚拟主机是共享相同的身份认证和加密环境的独立服务器域。每个vhost本质上就是一个mini版的RabbitMQ服务器，拥有自己的队列、交换器、绑定和权限机制。vhost是AMQP概念的基础，必须在链接时指定，RabbitMQ默认的vhost是 /。
@@ -195,7 +113,7 @@ MacDown Screenshot
 - **`Consumer：`**消息的消费者，表示一个从一个消息队列中取得消息的客户端应用程序。
 - **`Message：`**消息，消息是不具名的，它是由消息头和消息体组成。消息体是不透明的，而消息头则是由一系列的可选属性组成，这些属性包括routing-key(路由键)、priority(优先级)、delivery-mode(消息可能需要持久性存储[消息的路由模式])等。
 
-#### RabbitMQ的多种Exchange类型
+## RabbitMQ的多种Exchange类型
 
 Exchange分发消息时，根据类型的不同分发策略有区别。目前共四种类型：direct、fanout、topic、headers(headers匹配AMQP消息的header而不是路由键(Routing-key)，此外headers交换器和direct交换器完全一致，但是性能差了很多，目前几乎用不到了。所以直接看另外三种类型。)。
 
@@ -229,14 +147,14 @@ MacDown Screenshot
 
 topic交换器通过模式匹配分配消息的路由键属性，将路由键和某个模式进行匹配，此时队列需要绑定到一个模式上。它将路由键(routing-key)和绑定键(bingding-key)的字符串切分成单词，这些单词之间用点隔开。它同样也会识别两个通配符："#"和"*"。#匹配0个或多个单词，匹配不多不少一个单词。
 
-#### TTL
+## TTL
 
 TTL(Time To Live)：生存时间。RabbitMQ支持消息的过期时间，一共两种。
 
 - 在消息发送时可以进行指定。通过配置消息体的properties，可以指定当前消息的过期时间。
 - 在创建Exchange时可进行指定。从进入消息队列开始计算，只要超过了队列的超时时间配置，那么消息会自动清除。
 
-### 死信队列DLX
+## 死信队列DLX
 
 **`死信队列(DLX Dead-Letter-Exchange)：`**利用DLX，当消息在一个队列中变成死信(dead message)之后，它能被重新publish到另一个Exchange，这个Exchange就是DLX。
 
@@ -266,7 +184,7 @@ Queue ret = QueueBuilder.durable("queue-name".withArguments(arguments).build();
 
 只需要通过监听该死信队列即可处理死信消息。还可以通过死信队列完成延时队列。
 
-#### 消费端ACK与NACK
+## 消费端ACK与NACK
 
 消费端进行消费的时候，如果由于业务异常可以进行日志的记录，然后进行补偿。由于服务器宕机等严重问题，我们需要手动进行ACK保障消费端消费成功。
 
@@ -281,7 +199,7 @@ Queue ret = QueueBuilder.durable("queue-name".withArguments(arguments).build();
 public void basicNack(long deliveryTag, boolean multiple, boolean requeue) 
 ```
 
-#### 生产者Confirm机制
+## 生产者Confirm机制
 
 - 消息的确认，是指生产者投递消息后，如果Broker收到消息，则会给我们生产者一个应答。
 - 生产者进行接受应答，用来确认这条消息是否正常的发送到了Broker，这种方式也是消息的可靠性投递的核心保障！
@@ -297,7 +215,7 @@ public void basicNack(long deliveryTag, boolean multiple, boolean requeue)
 1、在channel上开启确认模式：channel.confirmSelect()
  2、在channel上开启监听：addConfirmListener，监听成功和失败的处理结果，根据具体的结果对消息进行重新发送或记录日志处理等后续操作。
 
-#### Return消息机制
+## Return消息机制
 
 Return Listener**用于处理一些不可路由的消息**。
 
@@ -309,7 +227,7 @@ Return Listener**用于处理一些不可路由的消息**。
 
 通过chennel.addReturnListener(ReturnListener rl)传入已经重写过handleReturn方法的ReturnListener。
 
-#### 消费端自定义监听(推模式和拉模式pull/push)
+## 消费端自定义监听(推模式和拉模式pull/push)
 
 - 一般通过while循环进行consumer.nextDelivery()方法进行获取下一条消息进行那个消费。(通过while将拉模式模拟成推模式，但是死循环会耗费CPU资源。)
 - 通过自定义Consumer，实现更加方便、可读性更强、解耦性更强的方式。(现默认使用的模式，直接订阅到queue上，如果有数据，就等待mq推送过来)
@@ -329,13 +247,11 @@ Basic.Consume将信道(Channel)置为接收模式，直到取消队列的订阅�
 
 两种模型对比
 
-#### 如何保证幂等性
+## 如何保证幂等性
 
 消费端实现幂等性，就意味着我们的消息永远不会消费多次，即使我们收到了多条一样的信息。
 
 - 唯一ID+指纹码机制，利用数据库主键去重
-
-
 
 ```csharp
 select count(1) from table where id = id+指纹码
@@ -346,14 +262,12 @@ select count(1) from table where id = id+指纹码
 
 - 利用redis的原子性去实现
 
-
-
 ```undefined
 问题1：是否需要落库。如果落库，如何保证数据的一致性和原子性？
 问题2：如果不进行落库，缓存种的数据如果设置定时同步的策略？
 ```
 
-#### 如何保证可靠性？
+## 如何保证可靠性？
 
 > 什么是生产端的可靠性投递？
 
@@ -399,7 +313,7 @@ select count(1) from table where id = id+指纹码
 减少了对库的操作，同时解耦，保证了性能，不能百分百保证可靠性
 ```
 
-#### 消费端如何限流
+## 消费端如何限流
 
 当海量消息瞬间推送过来，单个客户端无法同时处理那么多数据，严重会导致系统宕机。这时，需要削峰。
 
@@ -415,7 +329,7 @@ void BasicQos(unit prefetchSize, unshort prefetchCount, bool global);
 channel.basicQos(...);
 ```
 
-#### Channel模式和Connection模式
+## Channel模式和Connection模式
 
 参考：https://www.jianshu.com/p/2c2a7cfdd38a
 
@@ -463,13 +377,13 @@ setChannelCheckoutTimeout：当这个值大于0时，channelCacheSize不仅是�
 
 同时，在CONNECTION模式，这个值也会影响获取Connection的等待时间，超时获取不到Connection也会抛出AmqpTimeoutException异常。
 
-#### 消费端的Concurrency和Prefetch模式
+## 消费端的Concurrency和Prefetch模式
 
 暂未整理，参考https://www.jianshu.com/p/04a1d36f52ba
 
 只有Prefetch模式才可以设置qoshttps://www.jianshu.com/p/4d043d3045ca
 
-#### RabbitMQ集群
+## RabbitMQ集群
 
 参考：https://www.jianshu.com/p/b7cc32b94d2a
 
@@ -494,7 +408,5 @@ RabbitMQ 只要求集群中至少有一个磁盘节点，所有其他节点可�
 
 
 
-作者：Ethan__Wang
-链接：https://www.jianshu.com/p/78847c203b76
-来源：简书
-著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+参考:
+https://www.jianshu.com/p/78847c203b76
