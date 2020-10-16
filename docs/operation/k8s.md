@@ -266,7 +266,11 @@ minikube dashboard --url
 nohup kubectl proxy --port=8887 --address='192.168.1.180' --accept-hosts='^.*' >/dev/null 2>&1 &
 ```
 
-## 持久卷（PersistentVolume）
+
+
+## minikube 存储
+
+**持久卷（PersistentVolume）**
 
 Minikube 支持 `hostPath` 类型的 [持久卷](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)。
 
@@ -296,7 +300,7 @@ spec:
     path: /data/pv0001/
 ```
 
-## 挂载宿主机文件夹
+**挂载宿主机文件夹**
 
 一些驱动程序将在 VM 中挂载一个主机文件夹，以便你可以轻松地在 VM 和主机之间共享文件。目前这些都是不可配置的，并且根据你正在使用的驱动程序和操作系统的不同而不同。
 
