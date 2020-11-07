@@ -61,6 +61,11 @@ sudo docker rm 容器id/name   		   移除容器
 
 docker ps 和docker ps -a    			前者查看运行中的容器，后者查看所有容器
 
+# docker一键删除所有none镜像
+docker rmi `docker images | grep  "<none>" | awk '{print $3}'`
+# 如果确定所有none镜像确实没用，直接加个-f强制删除，谨慎
+docker rmi -f `docker images | grep  "<none>" | awk '{print $3}'`
+
 sudo docker run -itd --rm --name tensorflow_ssh_0 -v /data/docker/tensorflow/notebooks:/notebooks -p 8888:8888 -p 2022:22 1001/tensorflow_ssh:latest
 
 docker exec -it mysql1 bash
