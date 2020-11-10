@@ -335,7 +335,7 @@ ZooKeeper是一个高可用的分布式数据管理与系统协调框架。
 
 Hadoop,使用Zookeeper的事件处理确保整个集群只有一个NameNode,存储配置信息等.
 
-HBase,使用Zookeeper的事件处理确保整个集群只有一个HMaster,察觉HRegionServer联机和宕机,存储访问控制列表等.
+HBase,使用Zookeeper的事件处理确保整个集群只有一个HMaster,察觉HRegionServer联机和宕机,存储访问控制列表等[.](interview/java面试/theory/架构原理总结.md)
 
  
 

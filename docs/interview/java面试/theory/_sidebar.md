@@ -1,4 +1,3 @@
-* [数据库原理](interview/java面试/theory/数据库原理.md)
 * [dubbo原理](interview/java面试/theory/dubbo原理.md)
 * [springcloud原理](interview/java面试/theory/springcloud原理.md)
 * [zookeeper原理](interview/java面试/theory/zookeeper原理.md)

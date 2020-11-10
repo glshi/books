@@ -98,4 +98,4 @@ Netflix OSS 开源组件集成，包括Eureka、Hystrix、Ribbon、Feign、Zuul�
 
 ### Spring Cloud OpenFeign
 
-[Spring Cloud OpenFeign](http://www.macrozheng.com/#/cloud/springcloud?id=spring-cloud-openfeign)基于Ribbon和Hystrix的声明式服务调用组件，可以动态创建基于Spring MVC注解的接口实现用于服务调用，在SpringCloud 2.0中已经取代Feign成为了一等公民。
+[Spring Cloud OpenFeign](http://www.macrozheng.com/#/cloud/springcloud?id=spring-cloud-openfeign)基于Ribbon和Hystrix的声明式服务调用组件，可以动态创建基于Spring MVC注解的接口实现用于服务调用，在SpringCloud 2.0中已经取代Feign成为了一等公民[.](interview/java面试/theory/架构原理总结.md)

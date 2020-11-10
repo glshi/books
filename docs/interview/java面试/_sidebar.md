@@ -2,7 +2,7 @@
 * [缓存](interview/java面试/缓存.md)
 * [分布式](interview/java面试/分布式.md)
 * [IO模型](interview/java面试/IO模型.md)
-* [架构原理](interview/java面试/架构原理.md)
+* [架构原理](interview/java面试/theory/zookeeper原理.md)
 * [java容器](interview/java面试/java容器.md)
 * [java虚拟机](interview/java面试/java虚拟机.md)
 * [java多线程](interview/java面试/java多线程.md)
