@@ -46,6 +46,67 @@ sudo systemctl daemon-reload
 sudo systemctl restart docker
 ```
 
+
+
+# docker win10 home 安装
+
+## 1：安装 WSL 2
+
+参考：https://docs.microsoft.com/zh-cn/windows/wsl/install-win10
+
+## 2：安装 docker desktop
+
+下载地址：https://docs.docker.com/docker-for-windows/install-windows-home/
+
+## 3：更改镜像存储位置
+
+删除所有的image/container/wsl/hyperv数据：
+![img](https://img-blog.csdnimg.cn/20201119145457556.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2ZsZWF4aW4=,size_16,color_FFFFFF,t_70#pic_center)
+导出wsl子系统镜像:
+
+```
+wsl --export docker-desktop docker-desktop.tar
+wsl --export docker-desktop-data docker-desktop-data.tar
+```
+
+删除现有的wsl子系统：
+
+```
+wsl --unregister docker-desktop
+wsl --unregister docker-desktop-data
+```
+
+重新创建wsl子系统：
+
+```
+wsl --import docker-desktop d:\wsl docker-desktop.tar
+wsl --import docker-desktop-data d:\wsl\data docker-desktop-data.tar
+```
+
+重新运行docker desktop，然后pull一个镜像，C盘不会变大了。
+
+## 4：启用 kubernets
+
+参考：https://github.com/AliyunContainerService/k8s-for-docker-desktop
+
+**dashboard：**
+
+nohup kubectl proxy >/dev/null &
+
+ 通过如下 URL 访问 Kubernetes dashboard
+
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
+
+对于Windows环境
+
+```
+$TOKEN=((kubectl -n kube-system describe secret default | Select-String "token:") -split " +")[1]
+
+kubectl config set-credentials docker-for-desktop --token="${TOKEN}"
+
+echo $TOKEN
+```
+
 # docker常用命令
 
 ```bash
