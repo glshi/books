@@ -334,6 +334,119 @@ sr0
 
 sdb和sdc为可用的裸设备。
 
+**Ceph集群存储分区准备**
+
+**方案1：初始化硬盘分区作为Ceph存储（推荐）**
+
+> 注意：
+>
+> 1. 各节点硬盘分区名称编号须`统一`(如，均为`/dev/vdb1`)，部署脚本将每个节点中的该分区作为一个OSD
+> 2. 硬盘须为`GPT`格式
+
+**将整个硬盘格式化为1个分区(以下步骤须在各节点进行操作)**
+
+> 注意：如下操作 假设Ceph存储硬盘为`/dev/vdb`
+
+```bash
+# 查看硬盘分区
+parted /dev/vdb print
+
+# 格式化为gpt格式
+parted /dev/vdb mklabel gpt
+# 将整个硬盘切成一个区
+parted /dev/vdb mkpart primary xfs 0% 100%
+partprobe
+
+# 确认分区存在
+lsblk /dev/vdb1
+
+# 格式化文件系统格式为xfs
+mkfs -t xfs /dev/vdb1
+
+# 确认格式正确
+blkid /dev/vdb1
+
+# 中控机上修改
+# cd /data/install
+# vim extra/globals_ceph.env
+# CEPH_OSD_DISK="/dev/vdb1"
+```
+
+**方案2：对于没有空闲硬盘可以用loop设备模拟硬盘并创建逻辑卷（POC）**
+
+> - 每个`ceph`模块节点，必须执行下列操作
+
+```bash
+# 指定loop设备文件路径
+CEPH_DISK_FILE="/data/bkee/public/cephdisk"
+
+# 创建10G空文件
+dd if=/dev/zero of=$CEPH_DISK_FILE bs=4M count=2560 status=progress
+
+
+#创建一个loop设备 
+losetup /dev/loop0 $CEPH_DISK_FILE
+
+# 格式化为EXT4或XFS文件系统格式
+mkfs -t xfs /dev/loop5
+#partprobe
+# 创建逻辑卷
+pvcreate /dev/loop0
+vgcreate cephvg /dev/loop0
+lvcreate --name cephlv -l 100%FREE cephvg
+
+# 检查LVM创建状态
+lvs
+vgs
+pvs
+
+# 开机须先自动挂载loop设备
+grep cephvg /etc/rc.d/bkrc.local || echo "losetup -f $CEPH_DISK_FILE && vgchange -a y cephvg " >> /etc/rc.d/bkrc.local
+
+# 中控机上修改
+# cd /data/install
+# vim extra/globals_ceph.env
+# CEPH_OSD_DISK="cephvg/cephlv"
+
+# wsl2 docker desktop 下 rook-ceph loop配置
+CEPH_DISK_FILE5="/mnt/d/data/cephdisk5"
+dd if=/dev/zero of=$CEPH_DISK_FILE5 bs=4M count=1280 status=progress
+losetup /dev/loop5 $CEPH_DISK_FILE5
+
+CEPH_DISK_FILE6="/mnt/d/data/cephdisk6"
+dd if=/dev/zero of=$CEPH_DISK_FILE6 bs=4M count=1280 status=progress
+losetup /dev/loop6 $CEPH_DISK_FILE6
+
+CEPH_DISK_FILE7="/mnt/d/data/cephdisk7"
+dd if=/dev/zero of=$CEPH_DISK_FILE7 bs=4M count=1280 status=progress
+losetup /dev/loop7 $CEPH_DISK_FILE7
+
+# 格式化为xfs文件系统
+mkfs -t xfs /dev/loop5
+mkfs -t xfs /dev/loop6
+mkfs -t xfs /dev/loop7
+
+# 查看刚刚创建的块设备
+losetup -a
+# 删除这个loop设备
+losetup -d /dev/loop5
+losetup -d /dev/loop6
+losetup -d /dev/loop7
+
+# wsl2 docker desktop 下 rook-ceph virtual disk配置
+# 参考文档，首先在win10下创建虚拟硬盘
+https://docs.microsoft.com/zh-cn/windows/wsl/wsl2-mount-disk
+wmic diskdrive list brief
+# 磁盘路径位于 "DeviceID" 列下。 通常在 \\.\PHYSICALDRIVE* 格式下。
+wsl --mount <DiskPath> --bare
+
+wsl --mount \\.\PHYSICALDRIVE1 --bare
+wsl --mount \\.\PHYSICALDRIVE2 --bare
+wsl --mount \\.\PHYSICALDRIVE3 --bare
+# 如果要从 WSL 2 卸载并分离磁盘，请运行：
+wsl --unmount <DiskPath>
+```
+
 2：安装rook-ceph
 
 ```bash
@@ -422,6 +535,50 @@ spec:
       deviceFilter: "^sd."
 ```
 
+配置 cluster.yaml
+
+```bash
+# 查看现有node及label，方便后续配置nodes的name属性
+[root@master ~]# kubectl get nodes --show-labels 
+NAME     STATUS   ROLES    AGE     VERSION   LABELS
+master   Ready    master   54d     v1.13.4   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=master,node-role.kubernetes.io/master=
+node01   Ready    <none>   54d     v1.13.4   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=node01
+node02   Ready    <none>   6d19h   v1.13.4   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=node02
+```
+
+```bash
+spec:
+  dataDirHostPath: /data/rook # 配置第一项
+    
+# 集群级别的存储配置，每个节点都可以覆盖
+  storage:
+    # 是否所有节点都用于存储。如果指定nodes配置，则必须设置为false
+    useAllNodes: false
+    # 是否在节点上发现的所有设备，都自动的被OSD消费
+    useAllDevices: false # 配置第二项
+    # 正则式，指定哪些设备可以被OSD消费，示例：
+    # sdb 仅仅使用设备/dev/sdb
+    # ^sd. 使用所有/dev/sd*设备
+    # ^sd[a-d] 使用sda sdb sdc sdd ^sd[b-d]
+    # 可以指定裸设备,Rook会自动分区但不挂载
+    # deviceFilter: ^loop[5-8]  # 配置第三项
+    # 每个节点上用于存储OSD元数据的设备。使用低读取延迟的设备，例如SSD/NVMe存储元数据可以提升性能
+    # 可以针对每个节点进行配置
+    nodes:
+    # 节点kube-node1的配置
+    - name: "kube-node1"
+      devices:
+      - name: "loop5"
+    # 节点kube-node2的配置
+    - name: "kube-node2"
+      devices:
+      - name: "loop6"
+    # 节点kube-node3的配置
+    - name: "kube-node3"
+      devices:
+      - name: "loop7"
+```
+
 
 
 ## rook 卸载
@@ -472,6 +629,17 @@ kubectl -n rook-ceph get cephcluster
 
 ```bash
 for CRD in $(kubectl get crd -n rook-ceph | awk '/ceph.rook.io/ {print $1}'); do kubectl patch crd -n rook-ceph $CRD --type merge -p '{"metadata":{"finalizers": [null]}}'; done
+```
+
+## csi 拉取镜像失败
+
+```
+docker pull k8s.gcr.io/sig-storage/csi-provisioner:v2.0.0
+docker pull k8s.gcr.io/sig-storage/csi-attacher:v3.0.0
+docker pull k8s.gcr.io/sig-storage/csi-snapshotter:v3.0.0
+docker pull quay.io/cephcsi/cephcsi:v3.2.0
+docker pull k8s.gcr.io/sig-storage/csi-resizer:v1.0.0
+k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.0.1
 ```
 
 
@@ -616,17 +784,18 @@ Note: If the “preservePoolsOnDelete” filesystem attribute is set to true, th
 
 - 块存储
 
-   (适合单客户端使用)
+  (适合单客户端使用，数据库系统使用块设备)
 
   - 典型设备：磁盘阵列，硬盘。
   - 使用场景：
     - a. docker容器、虚拟机远程挂载磁盘存储分配。
     - b. 日志存储。
+    - c. 数据库服务器。
     - ...
 
 - 文件存储
 
-   (适合多客户端有目录结构)
+   (适合多客户端有目录结构，共享文件服务器)
 
   - 典型设备：FTP、NFS服务器。
   - 使用场景：
