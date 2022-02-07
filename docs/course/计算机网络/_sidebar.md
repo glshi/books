@@ -7,4 +7,6 @@
 * [攻击技术](course/计算机网络/攻击技术.md)
 * [Http](course/计算机网络/Http.md)
 * [TCP和UDP](course/计算机网络/TCP和UDP.md)
+* [WireShark](course/计算机网络/WireShark.md)
+* [TCPDump](course/计算机网络/TcpDump.md)
 
