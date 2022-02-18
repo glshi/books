@@ -1,5 +1,6 @@
-* [vue语法](grammar/vue语法.md)
-* [go语法](grammar/go语法.md)
-* [java语法](grammar/java语法.md)
-* [python语法](grammar/python语法.md)
-* [javaScript语法](grammar/javaScrpit语法.md)
+* [vue语法](grammar/语法-vue.md)
+* [go语法](grammar/语法-go.md)
+* [java语法](grammar/语法-java.md)
+* [python语法](grammar/语法-python.md)
+* [javaScript语法](grammar/语法-javaScrpit.md)
+

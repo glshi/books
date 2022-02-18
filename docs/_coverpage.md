@@ -8,5 +8,6 @@
 - No statically built html files
 - Multiple themes
 
-[GitHub](https://github.com/glshi/books/)
+[GitHub](https://github.com)
 [Getting Started](#知否)
+
