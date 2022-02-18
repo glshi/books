@@ -24,7 +24,7 @@
 
 Please consider donating if you think document is helpful to you or that my work is valuable.
 
-I am happy if you can help me [buy a cup of coffee](https://github.com/glshi/donate). 
+I am happy if you can help me [buy a cup of coffee](http://shiguangli.site/_images/wechat-alipay.png). 
 
 ## Lisence
 
